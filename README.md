@@ -10,6 +10,10 @@ You can configure text color, highlight background, and some other parameters in
 - Then I can mark it as something !! that needs attention !  
 - And even set up additional :: highlighting :
 ```
+Before the plugin is added to the Obsidian plugin library, **installation is manual only:**
+1. In the folder: %your_vault%\.obsidian\plugins — create a folder named inline-question-highlight
+2. Move that downloaded files into the folder: data.json, main.js, manifest.json, styles.css
+3. Enable the plugin in Obsidian settings
 
 I'm not even a hobbyist programmer — I just wanted to leave this kind of comment + highlight and couldn't find any suitable plugins.  
 I asked ChatGPT to write a plugin for me. I’ll refine it and release it as open source.
