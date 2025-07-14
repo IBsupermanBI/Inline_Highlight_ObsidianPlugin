@@ -4,6 +4,33 @@ const { Plugin, MarkdownView, PluginSettingTab, Setting } = require('obsidian');
 const { ViewPlugin, Decoration, WidgetType } = require('@codemirror/view');
 const { RangeSetBuilder } = require('@codemirror/state');
 
+function findMatches(text, v) {
+  const matches = [];
+  const prefix = v.open.slice(0, v.open.length - v.close.length);
+  let idx = 0;
+  while ((idx = text.indexOf(v.open, idx)) !== -1) {
+    let search = idx + v.open.length;
+    let closeIdx;
+    while ((closeIdx = text.indexOf(v.close, search)) !== -1) {
+      if (!prefix || text.slice(closeIdx - prefix.length, closeIdx) !== prefix) break;
+      search = closeIdx + v.close.length;
+    }
+    if (closeIdx === -1) break;
+    const inner = text.slice(idx + v.open.length, closeIdx);
+    const lead = inner.match(/^\s*/)[0].length;
+    const trail = inner.match(/\s*$/)[0].length;
+    matches.push({
+      start: idx,
+      len: closeIdx + v.close.length - idx,
+      lead,
+      trail,
+      content: inner.slice(lead, inner.length - trail),
+    });
+    idx = closeIdx + v.close.length;
+  }
+  return matches;
+}
+
 class EmojiWidget extends WidgetType {
   constructor(variant) { super(); this.variant = variant; }
   toDOM() {
@@ -61,24 +88,15 @@ class InlineVariantsPlugin extends Plugin {
 
         for (const v of plugin.settings.variants) {
           if (!v.enabled || !v.open || !v.close) continue;
-          const escO = v.open.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const escC = v.close.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const prefix = v.open.slice(0, v.open.length - v.close.length).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const regex = new RegExp(`${escO}(\\s*)(.+?)(\\s*)(?<!${prefix})${escC}`, 'g');
 
           for (const { from, to } of this.view.visibleRanges) {
             const text = state.doc.sliceString(from, to);
-            let m;
-            regex.lastIndex = 0;
-            while ((m = regex.exec(text))) {
-              const fullStart = from + m.index;
-              const fullLen = m[0].length;
-              const innerContent = m[2];
-              const leadSpaces = m[1].length;
-              const trailSpaces = m[3].length;
-              const innerStart = fullStart + v.open.length + leadSpaces;
-              const innerEnd = innerStart + innerContent.length;
-              const fullEnd = fullStart + fullLen;
+            const ms = findMatches(text, v);
+            for (const m of ms) {
+              const fullStart = from + m.start;
+              const innerStart = fullStart + v.open.length + m.lead;
+              const innerEnd = innerStart + m.content.length;
+              const fullEnd = fullStart + m.len;
 
               if (sel.ranges.some(r => r.head >= fullStart && r.head <= fullEnd)) continue;
 
@@ -110,12 +128,8 @@ class InlineVariantsPlugin extends Plugin {
       const n = walker.currentNode;
       if (!n.parentElement.closest('pre, code')) {
         for (const v of this.settings.variants) {
-          if (v.enabled && v.open && v.close) {
-            const escO = v.open.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const escC = v.close.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const prefix = v.open.slice(0, v.open.length - v.close.length).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const rg = new RegExp(`${escO}(\\s*)(.+?)(\\s*)(?<!${prefix})${escC}`, 'g');
-            if (rg.test(n.textContent)) { nodes.push(n); break; }
+          if (v.enabled && v.open && v.close && findMatches(n.textContent, v).length) {
+            nodes.push(n); break;
           }
         }
       }
@@ -129,12 +143,7 @@ class InlineVariantsPlugin extends Plugin {
 
       this.settings.variants.forEach(v => {
         if (!v.enabled || !v.open || !v.close) return;
-        const escO = v.open.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const escC = v.close.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const prefix = v.open.slice(0, v.open.length - v.close.length).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const rg = new RegExp(`${escO}(\\s*)(.+?)(\\s*)(?<!${prefix})${escC}`, 'g');
-        let m;
-        while ((m = rg.exec(text))) matches.push({ start: m.index, len: m[0].length, lead: m[1].length, content: m[2], trail: m[3].length, variant: v });
+        for (const m of findMatches(text, v)) matches.push({ ...m, variant: v });
       });
       matches.sort((a,b) => a.start - b.start);
 
