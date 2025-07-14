@@ -1,0 +1,10 @@
+{
+	"id": "inline-question-highlight",
+	"name": "Inline Question Highlight",
+	"version": "1.0.0",
+	"minAppVersion": "1.6.0",
+	"description": "Highlights inline questions with custom syntax (--?question?) and provides settings for customization.",
+	"author": "Gemini",
+	"authorUrl": "https://google.com",
+	"isDesktopOnly": false
+}

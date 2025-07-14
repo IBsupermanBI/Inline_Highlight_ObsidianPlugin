@@ -1,0 +1,18 @@
+/* Inline Question Highlight Base Styles */
+.inline-question-highlight {
+  color: var(--inline-question-text-color, #FF5555);
+  background-color: rgba(var(--inline-question-bg-color-rgb, 255, 85, 85), 0.15);
+  font-weight: var(--inline-question-font-weight, 600);
+  padding: 0 2px;
+  border-radius: 3px;
+  margin: 0 1px;
+  display: inline;
+}
+
+.inline-question-highlight-emoji {
+  color: var(--inline-question-text-color, #FF5555);
+  font-weight: normal;
+  user-select: none;
+  display: inline-block;
+  margin-left: 2px;
+}
